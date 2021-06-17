@@ -41,3 +41,7 @@ Execute from the root of the project:
     - npm run test 
 
 4. Generate coverage report `npm run coverage`
+
+5. To view coverage report
+
+    - Open coverage/index.html
