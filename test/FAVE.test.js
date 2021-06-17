@@ -1,0 +1,283 @@
+const { expectRevert, balance } = require('@openzeppelin/test-helpers');
+const { assert } = require('chai');
+const BigNumber = require('bignumber.js');
+const constants = require('@openzeppelin/test-helpers/src/constants');
+const FAVE = artifacts.require("FAVE")
+
+contract('FAVE is [ERC720, Ownable]', (accounts) => {
+    const [owner, acc1, acc2, acc3, acc4, project, newProject] = accounts
+    const gas = 6721975
+    const initialSupply = "10000000000000000" // 1000000000 FAVE Coins
+
+    let FAVEConInstance;
+    let txObject;
+
+    describe('FAVE tests', () => {
+        before(async () => {
+            FAVEConInstance = await FAVE.new(initialSupply, project, { from: owner, gas })
+        })
+
+        context('checks constructor invocation is successful', () => {
+            let name, symbol, tokenDecimals, totalSupply, wallet;
+            it('should have token name to be `Favecoin`', async () => {
+                name = await FAVEConInstance.name.call()
+                assert.equal(name, 'Favecoin', "Token name do not match")
+            })
+            it('should have token symbol to be `FAVE`', async () => {
+                symbol = await FAVEConInstance.symbol.call()
+                assert.equal(symbol, 'FAVE', "Token symbol do not match")
+            })
+            it('should have token tokenDecimals to be 7', async () => {
+                tokenDecimals = await FAVEConInstance.decimals.call()
+                assert.equal(tokenDecimals, 7, "Token decimals do not match")
+            })
+            it('should verify totalSupply is 1000000000', async () => {
+                totalSupply = new BigNumber(await FAVEConInstance.totalSupply.call());
+                assert.equal(totalSupply.toNumber(), initialSupply, "Total supply do not match")
+            })
+            it('should verify project is set as expected', async () => {
+                wallet = await FAVEConInstance.project.call();
+                assert.equal(wallet, project, "Wallets do not match.")
+            })
+        })
+
+        context('updateDecimals', () => {
+            const actualTokenDecimals = 7;
+            const updatedTokenDecimals = 18;
+            let decimals;
+            it('reverts when updateDecimals is invoked by non-owner', async () => {
+                await expectRevert(
+                    FAVEConInstance.updateDecimals(updatedTokenDecimals, { from: acc1, gas }),
+                    "Ownable: caller is not the owner"
+                )
+            })
+            it('before update tokenDecimals is 7', async () => {
+                decimals = await FAVEConInstance.tokenDecimals.call()
+                assert.equal(decimals, actualTokenDecimals, "Token decimals do not match")
+            })
+            it('updates token decimals when invoked by owner', async () => {
+                txObject = await FAVEConInstance.updateDecimals(updatedTokenDecimals, { from: owner, gas })
+                assert.equal(txObject.receipt.status, true, "Update token decimals failed")
+            })
+            it('after update tokenDecimals is 8', async () => {
+                decimals = await FAVEConInstance.decimals.call()
+                assert.equal(decimals, updatedTokenDecimals, "Token decimals do not match")
+            })
+            it('sets the tokenDecimals to actualTokenDecimals', async () => {
+                txObject = await FAVEConInstance.updateDecimals(actualTokenDecimals, { from: owner, gas })
+                assert.equal(txObject.receipt.status, true, "Update token decimals failed")
+            })
+        })
+
+        context('updateFee', () => {
+            const actualFee = 1e4;
+            const updatedFee = 3.5e4;
+            let fee;
+            it('reverts when updateFee is invoked by non-owner', async () => {
+                await expectRevert(
+                    FAVEConInstance.updateFee(updatedFee, { from: acc1, gas }),
+                    "Ownable: caller is not the owner"
+                )
+            })
+            it('before update fee is 1e4', async () => {
+                fee = await FAVEConInstance.projectFee.call()
+                assert.equal(fee.toNumber(), actualFee, "Project fee do not match")
+            })
+            it('updates project fee when invoked by owner', async () => {
+                txObject = await FAVEConInstance.updateFee(updatedFee, { from: owner, gas })
+                assert.equal(txObject.receipt.status, true, "Update project fee failed")
+            })
+            it('after update project fee is 3.5e4', async () => {
+                fee = await FAVEConInstance.projectFee.call()
+                assert.equal(fee.toNumber(), updatedFee, "Project fee do not match")
+            })
+            it('sets the fee to actualFee', async () => {
+                txObject = await FAVEConInstance.updateFee(actualFee, { from: owner, gas })
+                assert.equal(txObject.receipt.status, true, "Update project fee failed")
+            })
+        })
+
+        describe('burn', () => {
+            let balance;
+            const burnAmount = new BigNumber(1e10) // 1000 FAVE
+            context('reverts', () => {
+                before(async () => {
+                    await FAVEConInstance.pause({ from: owner, gas });
+                    await FAVEConInstance.transfer(acc1, burnAmount, { from: owner, gas }) // Transfers 990 FAVE from Owner to acc1
+                });
+                it('when contract is paused', async () => {
+                    await expectRevert(
+                        FAVEConInstance.burn(acc1, burnAmount, { from: owner, gas }),
+                        "Pausable: paused"
+                    )
+                });
+                after(async () => {
+                    await FAVEConInstance.unpause({ from: owner, gas });
+                });
+            })
+            context('success', () => {
+                it('should check project balance is 10 FAVE', async () => {
+                    balance = new BigNumber(await FAVEConInstance.balanceOf.call(project));
+                    assert.equal(balance.toNumber(), 10e7, "Balance do not match")
+                })
+                it("before burn account balance is 990 FAVE for acc1", async () => {
+                    balance = new BigNumber(await FAVEConInstance.balanceOf.call(acc1));
+                    assert.equal(balance.toNumber(), 9.9e9, "Balance do not match")
+                })
+                it('burns 990 FAVE coins of acc1', async () => {
+                    txObject = await FAVEConInstance.burn(acc1, 9.9e9, { from: acc1, gas })
+                    assert.equal(txObject.receipt.status, true, "Token burn failed")
+                })
+                it('should check project balance is 19 FAVE', async () => {
+                    balance = new BigNumber(await FAVEConInstance.balanceOf.call(project));
+                    assert.equal(balance.toNumber(), 1.99e8, "Balance do not match")
+                })
+                it("after burn account balance is 0 for acc1", async () => {
+                    balance = new BigNumber(await FAVEConInstance.balanceOf.call(acc1));
+                    assert.equal(balance.toNumber(), 0, "Balance do not match")
+                })
+            })
+        })
+
+        describe('mint', () => {
+            let balance;
+            const mintAmount = new BigNumber(1e10) // 1000 FAVE
+            context('reverts', () => {
+                before(async () => {
+                    await FAVEConInstance.pause({ from: owner, gas });
+                });
+                it('when contract is paused', async () => {
+                    await expectRevert(
+                        FAVEConInstance.burn(acc2, mintAmount, { from: owner, gas }),
+                        "Pausable: paused"
+                    )
+                });
+                after(async () => {
+                    await FAVEConInstance.unpause({ from: owner, gas });
+                });
+            })
+            context('success', () => {
+                it("before mint account balance is 0 FAVE for acc2", async () => {
+                    balance = new BigNumber(await FAVEConInstance.balanceOf.call(acc2));
+                    assert.equal(balance.toNumber(), 0, "Balance do not match")
+                })
+                it('mints 1000 FAVE coins of acc2', async () => {
+                    txObject = await FAVEConInstance.mint(acc2, mintAmount, { from: owner, gas })
+                    assert.equal(txObject.receipt.status, true, "Token mint failed")
+                })
+                it('should check project balance is 29.9 FAVE', async () => {
+                    balance = new BigNumber(await FAVEConInstance.balanceOf.call(project));
+                    assert.equal(balance.toNumber(), 2.99e8, "Balance do not match")
+                })
+                it("after mint account balance is 990 FAVE for acc2", async () => {
+                    balance = new BigNumber(await FAVEConInstance.balanceOf.call(acc2));
+                    assert.equal(balance.toNumber(), 9.9e9, "Balance do not match")
+                })
+            })
+        })
+
+        describe('transfer', () => {
+            const transferAmount = 5e9; // 500 FAVE
+            const mintAmount = new BigNumber(1e10) // 1000 FAVE
+            let balance;
+            before(async () => {
+                await FAVEConInstance.mint(acc3, mintAmount, { from: owner, gas })
+                await FAVEConInstance.mint(acc4, mintAmount, { from: owner, gas })
+            })
+            it('should check project balance is 49.9 FAVE', async () => {
+                balance = new BigNumber(await FAVEConInstance.balanceOf.call(project));
+                assert.equal(balance.toNumber(), 4.99e8, "Balance do not match")
+            })
+            it("after mint account balance is 990 FAVE for acc3", async () => {
+                balance = new BigNumber(await FAVEConInstance.balanceOf.call(acc3));
+                assert.equal(balance.toNumber(), 9.9e9, "Balance do not match")
+            })
+            it("after mint account balance is 990 FAVE for acc4", async () => {
+                balance = new BigNumber(await FAVEConInstance.balanceOf.call(acc4));
+                assert.equal(balance.toNumber(), 9.9e9, "Balance do not match")
+            })
+            it('should transfer 500 FAVE from acc3 to acc4', async () => {
+                txObject = await FAVEConInstance.transfer(acc4, transferAmount, { from: acc3, gas });
+                assert.equal(txObject.receipt.status, true, "Token transfer failed")
+            })
+            it('after transfer should check project balance is 54.9 FAVE', async () => {
+                balance = new BigNumber(await FAVEConInstance.balanceOf.call(project));
+                assert.equal(balance.toNumber(), 5.49e8, "Balance do not match")
+            })
+            it("after transfer account balance is 490 FAVE for acc3", async () => {
+                balance = new BigNumber(await FAVEConInstance.balanceOf.call(acc3));
+                assert.equal(balance.toNumber(), 4.9e9, "Balance do not match")
+            })
+            it("after transfer account balance is 1485 FAVE for acc4", async () => {
+                balance = new BigNumber(await FAVEConInstance.balanceOf.call(acc4));
+                assert.equal(balance.toNumber(), 1.485e10, "Balance do not match")
+            })
+        })
+
+        describe('transferFrom', () => {
+            const transferAmount = 5e9; // 500 FAVE
+            let balance;
+            it('should transfer 500 FAVE from acc4 to acc3', async () => {
+                txObject = await FAVEConInstance.transferFrom(acc4, acc3, transferAmount, { from: acc4, gas });
+                assert.equal(txObject.receipt.status, true, "Token transfer failed")
+            })
+            it('after transferFrom should check project balance is 59.9 FAVE', async () => {
+                balance = new BigNumber(await FAVEConInstance.balanceOf.call(project));
+                assert.equal(balance.toNumber(), 5.99e8, "Balance do not match")
+            })
+            it("after transferFrom account balance is 985 FAVE for acc3", async () => {
+                balance = new BigNumber(await FAVEConInstance.balanceOf.call(acc3));
+                assert.equal(balance.toNumber(), 9.85e9, "Balance do not match")
+            })
+            it("after transferFrom account balance is 985 FAVE for acc4", async () => {
+                balance = new BigNumber(await FAVEConInstance.balanceOf.call(acc4));
+                assert.equal(balance.toNumber(), 9.85e9, "Balance do not match")
+            })
+        })
+
+        context('transferWithoutFeeDeduction', () => {
+            const transferAmount = 5.99e8; //59.9 FAVE
+            let balance;
+            it('reverts when caller is not project', async () => {
+                await expectRevert(
+                    FAVEConInstance.transferWithoutFeeDeduction(newProject, transferAmount, { from: owner, gas }),
+                    "Caller is not project"
+                )
+            });
+            it("should transfer 59.9 FAVE to newProject", async () => {
+                txObject = await FAVEConInstance.transferWithoutFeeDeduction(newProject, transferAmount, { from: project, gas });
+                assert.equal(txObject.receipt.status, true, "Transfer w/o fee deduction failed");
+            })
+            it("after transferWithoutFeeDeduction account balance is 0 FAVE for project", async () => {
+                balance = new BigNumber(await FAVEConInstance.balanceOf.call(project));
+                assert.equal(balance.toNumber(), 0, "Balance do not match")
+            })
+            it("after transferWithoutFeeDeduction account balance is 59.9 FAVE for newProject", async () => {
+                balance = new BigNumber(await FAVEConInstance.balanceOf.call(newProject));
+                assert.equal(balance.toNumber(), transferAmount, "Balance do not match")
+            })
+        })
+
+        context('withdrawAll', () => {
+            it('sends 1 ether to the contract', async () => {
+                txObject = await FAVEConInstance.send(new BigNumber(1e18), { from: owner, gas })
+                assert.equal(txObject.receipt.status, true, "Ether send failed")
+            })
+
+            it('should verify contract balance to be 1 Eth', async () => {
+                const balanceEth = await balance.current(FAVEConInstance.address, 'ether')
+                assert.equal(balanceEth.toNumber(), 1, "Balances do not match")
+            })
+
+            it('should withdraw 1 Eth from the contract', async () => {
+                txObject = await FAVEConInstance.withdrawAll({ from: owner, gas })
+                assert.equal(txObject.receipt.status, true, "Withdraw failed")
+            })
+
+            it('after withdraw should verify contract balance to be 0 Eth', async () => {
+                const balanceEth = await balance.current(FAVEConInstance.address, 'ether')
+                assert.equal(balanceEth.toNumber(), 0, "Balances do not match")
+            })
+        })
+    })
+})
