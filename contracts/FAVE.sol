@@ -167,6 +167,7 @@ contract FAVE is ERC20, Ownable, Pausable {
      * `amount`.
      */
     function transferFrom(
+        //solhint-disable-next-line no-unused-vars
         address sender,
         address recipient,
         uint256 amount

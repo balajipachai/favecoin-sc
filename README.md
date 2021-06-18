@@ -8,15 +8,11 @@ List of smart contracts for Favecoin
 
 - In the file explorer, on the left-hand side, `contracts` -> right click -> `New File` -> `FAVE.sol` -> Paste `/flattened_contracts/FAVE.sol` -> `Ctrl+s`
 
-Do the above steps for `SaleFAVEBNB.sol`
-
 - Compile the contracts (`Blue Button`)
 
 - From the left-panel, click `Deploy & run transactions`
 
 - For FAVE.sol -> Deploy -> specify the initialSupply value, you can use `0x2c781f708c50a0000000` => 210000 FAVE Coins
-
-- For SaleBNBFAVE.sol -> Deploy -> specify the FAVE contract addresses
 
 # For Mainnet
 
