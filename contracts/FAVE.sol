@@ -17,9 +17,14 @@ contract FAVE is ERC20, Ownable, Pausable {
     uint256 public constant DIVISION_FACTOR = 1_000_000;
 
     event LogFeeChanged(uint256 oldFee, uint256 newFee);
+    event LogProjectChanged(address oldProject, address newProject);
 
-    modifier onlyProject() {
-        require(msg.sender == project, "Caller is not project");
+    modifier onlyProjectOrOwner() {
+        //solhint-disable-next-line reason-string
+        require(
+            msg.sender == project || msg.sender == owner(),
+            "Caller is neither project nor owner"
+        );
         _;
     }
 
@@ -55,9 +60,22 @@ contract FAVE is ERC20, Ownable, Pausable {
      */
     function transferWithoutFeeDeduction(address recipient, uint256 amount)
         external
-        onlyProject
+        onlyProjectOrOwner
     {
         super.transfer(recipient, amount);
+    }
+
+    /**
+     * @dev To update project wallet
+     *
+     * Requirements:
+     * - can only be invoked by the project
+     */
+    function updateProject(address payable _project) external onlyOwner {
+        require(project != _project, "New project can't be old project");
+        address oldProject = project;
+        project = _project;
+        emit LogProjectChanged(oldProject, _project);
     }
 
     /**

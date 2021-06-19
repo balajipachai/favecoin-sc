@@ -2,10 +2,11 @@ const { expectRevert, balance } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
 const BigNumber = require('bignumber.js');
 const constants = require('@openzeppelin/test-helpers/src/constants');
+const expectEvent = require('@openzeppelin/test-helpers/src/expectEvent');
 const FAVE = artifacts.require("FAVE")
 
 contract('FAVE is [ERC720, Ownable]', (accounts) => {
-    const [owner, acc1, acc2, acc3, acc4, project, newProject] = accounts
+    const [owner, acc1, acc2, acc3, acc4, project, newProject, nonOwner] = accounts
     const gas = 6721975
     const initialSupply = "10000000000000000" // 1000000000 FAVE Coins
 
@@ -240,8 +241,8 @@ contract('FAVE is [ERC720, Ownable]', (accounts) => {
             let balance;
             it('reverts when caller is not project', async () => {
                 await expectRevert(
-                    FAVEConInstance.transferWithoutFeeDeduction(newProject, transferAmount, { from: owner, gas }),
-                    "Caller is not project"
+                    FAVEConInstance.transferWithoutFeeDeduction(newProject, transferAmount, { from: nonOwner, gas }),
+                    "Caller is neither project nor owner"
                 )
             });
             it("should transfer 59.9 FAVE to newProject", async () => {
@@ -257,6 +258,33 @@ contract('FAVE is [ERC720, Ownable]', (accounts) => {
                 assert.equal(balance.toNumber(), transferAmount, "Balance do not match")
             })
         })
+
+        context('updateProject', () => {
+            it('reverts when old & new project are the same', async () => {
+                await expectRevert(
+                    FAVEConInstance.updateProject(project, { from: owner, gas }),
+                    "New project can't be old project"
+                )
+            });
+            it('should update project successfully', async () => {
+                txObject = await FAVEConInstance.updateProject(newProject, { from: owner, gas });
+                assert.equal(txObject.receipt.status, true, "Project update failed");
+            });
+            it('should check for LogProjectChanged event', async () => {
+                await expectEvent(
+                    txObject.receipt,
+                    'LogProjectChanged',
+                    {
+                        oldProject: project,
+                        newProject
+                    }
+                );
+            });
+            it('should verify newProject is set as expected', async () => {
+                const wallet = await FAVEConInstance.project.call();
+                assert.equal(wallet, newProject, "Wallets do not match.")
+            })
+        });
 
         context('withdrawAll', () => {
             it('sends 1 ether to the contract', async () => {
