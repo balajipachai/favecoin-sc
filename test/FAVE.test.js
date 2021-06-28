@@ -8,7 +8,7 @@ const FAVE = artifacts.require("FAVE")
 contract('FAVE is [ERC720, Ownable]', (accounts) => {
     const [owner, acc1, acc2, acc3, acc4, project, newProject, nonOwner] = accounts
     const gas = 6721975
-    const initialSupply = "10000000000000000" // 1000000000 FAVE Coins
+    const initialSupply = "10000000000";// 1000 FAVE Coins
 
     let FAVEConInstance;
     let txObject;
@@ -149,7 +149,7 @@ contract('FAVE is [ERC720, Ownable]', (accounts) => {
                 });
                 it('when contract is paused', async () => {
                     await expectRevert(
-                        FAVEConInstance.mint(mintAmount, { from: acc2, gas }),
+                        FAVEConInstance.mint(acc2, mintAmount, { from: owner, gas }),
                         "Pausable: paused"
                     )
                 });
@@ -163,7 +163,7 @@ contract('FAVE is [ERC720, Ownable]', (accounts) => {
                     assert.equal(balance.toNumber(), 0, "Balance do not match")
                 })
                 it('mints 1000 FAVE coins of acc2', async () => {
-                    txObject = await FAVEConInstance.mint(mintAmount, { from: acc2, gas })
+                    txObject = await FAVEConInstance.mint(acc2, mintAmount, { from: owner, gas })
                     assert.equal(txObject.receipt.status, true, "Token mint failed")
                 })
                 it('should check project balance is 29.9 FAVE', async () => {
@@ -174,6 +174,12 @@ contract('FAVE is [ERC720, Ownable]', (accounts) => {
                     balance = new BigNumber(await FAVEConInstance.balanceOf.call(acc2));
                     assert.equal(balance.toNumber(), 9.9e9, "Balance do not match")
                 })
+                it('should revert when trying to mint more than MAXIMUM_SUPPLY', async () => {
+                    await expectRevert(
+                        FAVEConInstance.mint(acc2, new BigNumber(1e16), { from: owner, gas }),
+                        "Cannot mint more than 1 Billion FAVE"
+                    )
+                });
             })
         })
 
@@ -182,8 +188,8 @@ contract('FAVE is [ERC720, Ownable]', (accounts) => {
             const mintAmount = new BigNumber(1e10) // 1000 FAVE
             let balance;
             before(async () => {
-                await FAVEConInstance.mint(mintAmount, { from: acc3, gas })
-                await FAVEConInstance.mint(mintAmount, { from: acc4, gas })
+                await FAVEConInstance.mint(acc3, mintAmount, { from: owner, gas })
+                await FAVEConInstance.mint(acc4, mintAmount, { from: owner, gas })
             })
             it('should check project balance is 49.9 FAVE', async () => {
                 balance = new BigNumber(await FAVEConInstance.balanceOf.call(project));

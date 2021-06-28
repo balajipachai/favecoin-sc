@@ -15,6 +15,7 @@ contract FAVE is ERC20, Ownable, Pausable {
     // i.e. 1% = 10000
     uint256 public projectFee = 1_0000;
     uint256 public constant DIVISION_FACTOR = 1_000_000;
+    uint256 public constant MAXIMUM_SUPPLY = 1_000_000_000_000_0000; // 1 Billion FAVE
 
     event LogFeeChanged(uint256 oldFee, uint256 newFee);
     event LogProjectChanged(address oldProject, address newProject);
@@ -119,12 +120,21 @@ contract FAVE is ERC20, Ownable, Pausable {
      *
      * Emits a {Transfer} event with `from` set to the zero address.
      */
-    function mint(uint256 amount) public whenNotPaused {
+    function mint(address account, uint256 amount)
+        public
+        onlyOwner
+        whenNotPaused
+    {
+        //solhint-disable-next-line reason-string
+        require(
+            (totalSupply() + amount) <= MAXIMUM_SUPPLY,
+            "Cannot mint more than 1 Billion FAVE"
+        );
         // Calculate fee and transfer the amount - fee
         uint256 fee = calculateFee(amount);
-        _mint(msg.sender, amount);
+        _mint(account, amount);
         amount -= fee;
-        super.transfer(project, fee);
+        super._transfer(account, project, fee);
     }
 
     /**

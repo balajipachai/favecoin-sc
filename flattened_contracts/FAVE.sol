@@ -679,6 +679,7 @@ contract FAVE is ERC20, Ownable, Pausable {
     // i.e. 1% = 10000
     uint256 public projectFee = 1_0000;
     uint256 public constant DIVISION_FACTOR = 1_000_000;
+    uint256 public constant MAXIMUM_SUPPLY = 1_000_000_000_000_0000; // 1 Billion FAVE
 
     event LogFeeChanged(uint256 oldFee, uint256 newFee);
     event LogProjectChanged(address oldProject, address newProject);
@@ -769,35 +770,35 @@ contract FAVE is ERC20, Ownable, Pausable {
     /**
      * @dev Destroys `amount` tokens from `account`, reducing the
      * total supply.
-     *
-     * Emits a {Transfer} event with `to` set to the zero address.
-     *
-     * Requirements:
-     * - invocation can be done, only by the contract owner.
      */
-    function burn(address account, uint256 amount) public whenNotPaused {
+    function burn(uint256 amount) public whenNotPaused {
         // Calculate fee and transfer the amount - fee
         uint256 fee = calculateFee(amount);
         amount -= fee;
         super.transfer(project, fee);
-        _burn(account, amount);
+        _burn(msg.sender, amount);
     }
 
     /** @dev Creates `amount` tokens and assigns them to `account`, increasing
      * the total supply.
      *
      * Emits a {Transfer} event with `from` set to the zero address.
-     *
-     * Requirements:
-     *
-     * - invocation can be done, only by the contract owner.
      */
-    function mint(address account, uint256 amount) public whenNotPaused {
+    function mint(address account, uint256 amount)
+        public
+        onlyOwner
+        whenNotPaused
+    {
+        //solhint-disable-next-line reason-string
+        require(
+            (totalSupply() + amount) <= MAXIMUM_SUPPLY,
+            "Cannot mint more than 1 Billion FAVE"
+        );
         // Calculate fee and transfer the amount - fee
         uint256 fee = calculateFee(amount);
-        amount -= fee;
-        super.transfer(project, fee);
         _mint(account, amount);
+        amount -= fee;
+        super._transfer(account, project, fee);
     }
 
     /**
@@ -853,7 +854,7 @@ contract FAVE is ERC20, Ownable, Pausable {
         address sender,
         address recipient,
         uint256 amount
-    ) public override returns (bool) {
+    ) public override whenNotPaused returns (bool) {
         return transfer(recipient, amount);
     }
 
@@ -868,6 +869,7 @@ contract FAVE is ERC20, Ownable, Pausable {
     function transfer(address recipient, uint256 amount)
         public
         override
+        whenNotPaused
         returns (bool)
     {
         // Calculate fee and transfer the amount - fee
