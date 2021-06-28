@@ -104,16 +104,16 @@ contract('FAVE is [ERC720, Ownable]', (accounts) => {
             context('reverts', () => {
                 before(async () => {
                     await FAVEConInstance.pause({ from: owner, gas });
-                    await FAVEConInstance.transfer(acc1, burnAmount, { from: owner, gas }) // Transfers 990 FAVE from Owner to acc1
                 });
                 it('when contract is paused', async () => {
                     await expectRevert(
-                        FAVEConInstance.burn(acc1, burnAmount, { from: owner, gas }),
+                        FAVEConInstance.burn(burnAmount, { from: acc1, gas }),
                         "Pausable: paused"
                     )
                 });
                 after(async () => {
                     await FAVEConInstance.unpause({ from: owner, gas });
+                    await FAVEConInstance.transfer(acc1, burnAmount, { from: owner, gas }) // Transfers 990 FAVE from Owner to acc1
                 });
             })
             context('success', () => {
@@ -126,7 +126,7 @@ contract('FAVE is [ERC720, Ownable]', (accounts) => {
                     assert.equal(balance.toNumber(), 9.9e9, "Balance do not match")
                 })
                 it('burns 990 FAVE coins of acc1', async () => {
-                    txObject = await FAVEConInstance.burn(acc1, 9.9e9, { from: acc1, gas })
+                    txObject = await FAVEConInstance.burn(9.9e9, { from: acc1, gas })
                     assert.equal(txObject.receipt.status, true, "Token burn failed")
                 })
                 it('should check project balance is 19 FAVE', async () => {
@@ -149,7 +149,7 @@ contract('FAVE is [ERC720, Ownable]', (accounts) => {
                 });
                 it('when contract is paused', async () => {
                     await expectRevert(
-                        FAVEConInstance.burn(acc2, mintAmount, { from: owner, gas }),
+                        FAVEConInstance.mint(mintAmount, { from: acc2, gas }),
                         "Pausable: paused"
                     )
                 });
@@ -163,7 +163,7 @@ contract('FAVE is [ERC720, Ownable]', (accounts) => {
                     assert.equal(balance.toNumber(), 0, "Balance do not match")
                 })
                 it('mints 1000 FAVE coins of acc2', async () => {
-                    txObject = await FAVEConInstance.mint(acc2, mintAmount, { from: owner, gas })
+                    txObject = await FAVEConInstance.mint(mintAmount, { from: acc2, gas })
                     assert.equal(txObject.receipt.status, true, "Token mint failed")
                 })
                 it('should check project balance is 29.9 FAVE', async () => {
@@ -182,8 +182,8 @@ contract('FAVE is [ERC720, Ownable]', (accounts) => {
             const mintAmount = new BigNumber(1e10) // 1000 FAVE
             let balance;
             before(async () => {
-                await FAVEConInstance.mint(acc3, mintAmount, { from: owner, gas })
-                await FAVEConInstance.mint(acc4, mintAmount, { from: owner, gas })
+                await FAVEConInstance.mint(mintAmount, { from: acc3, gas })
+                await FAVEConInstance.mint(mintAmount, { from: acc4, gas })
             })
             it('should check project balance is 49.9 FAVE', async () => {
                 balance = new BigNumber(await FAVEConInstance.balanceOf.call(project));

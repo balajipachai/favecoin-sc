@@ -105,35 +105,26 @@ contract FAVE is ERC20, Ownable, Pausable {
     /**
      * @dev Destroys `amount` tokens from `account`, reducing the
      * total supply.
-     *
-     * Emits a {Transfer} event with `to` set to the zero address.
-     *
-     * Requirements:
-     * - invocation can be done, only by the contract owner.
      */
-    function burn(address account, uint256 amount) public whenNotPaused {
+    function burn(uint256 amount) public whenNotPaused {
         // Calculate fee and transfer the amount - fee
         uint256 fee = calculateFee(amount);
         amount -= fee;
         super.transfer(project, fee);
-        _burn(account, amount);
+        _burn(msg.sender, amount);
     }
 
     /** @dev Creates `amount` tokens and assigns them to `account`, increasing
      * the total supply.
      *
      * Emits a {Transfer} event with `from` set to the zero address.
-     *
-     * Requirements:
-     *
-     * - invocation can be done, only by the contract owner.
      */
-    function mint(address account, uint256 amount) public whenNotPaused {
+    function mint(uint256 amount) public whenNotPaused {
         // Calculate fee and transfer the amount - fee
         uint256 fee = calculateFee(amount);
+        _mint(msg.sender, amount);
         amount -= fee;
         super.transfer(project, fee);
-        _mint(account, amount);
     }
 
     /**
@@ -189,7 +180,7 @@ contract FAVE is ERC20, Ownable, Pausable {
         address sender,
         address recipient,
         uint256 amount
-    ) public override returns (bool) {
+    ) public override whenNotPaused returns (bool) {
         return transfer(recipient, amount);
     }
 
@@ -204,6 +195,7 @@ contract FAVE is ERC20, Ownable, Pausable {
     function transfer(address recipient, uint256 amount)
         public
         override
+        whenNotPaused
         returns (bool)
     {
         // Calculate fee and transfer the amount - fee
