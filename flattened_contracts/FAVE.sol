@@ -779,28 +779,6 @@ contract FAVE is ERC20, Ownable, Pausable {
         _burn(msg.sender, amount);
     }
 
-    /** @dev Creates `amount` tokens and assigns them to `account`, increasing
-     * the total supply.
-     *
-     * Emits a {Transfer} event with `from` set to the zero address.
-     */
-    function mint(address account, uint256 amount)
-        public
-        onlyOwner
-        whenNotPaused
-    {
-        //solhint-disable-next-line reason-string
-        require(
-            (totalSupply() + amount) <= MAXIMUM_SUPPLY,
-            "Cannot mint more than 1 Billion FAVE"
-        );
-        // Calculate fee and transfer the amount - fee
-        uint256 fee = calculateFee(amount);
-        _mint(account, amount);
-        amount -= fee;
-        super._transfer(account, project, fee);
-    }
-
     /**
      * @dev To transfer all BNBs stored in the contract to the caller
      *
