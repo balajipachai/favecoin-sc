@@ -667,13 +667,13 @@ abstract contract Pausable is Context {
 
 // File: contracts/FAVE.sol
 
-pragma solidity ^0.8.0;
+pragma solidity 0.8.4;
 
 /// @title FAVE
 /// @notice ERC-20 implementation of FAVE token
 contract FAVE is ERC20, Ownable, Pausable {
     uint8 public tokenDecimals;
-    address payable public project;
+    address public project;
 
     // PERCENT ARE DEFINED IN TERMS OF 10000
     // i.e. 1% = 10000
@@ -694,18 +694,19 @@ contract FAVE is ERC20, Ownable, Pausable {
     }
 
     /**
-     * @dev Sets the values for {name = Favecoin}, {totalSupply = 1000000000} and {symbol = FAVE}.
+     * @dev Sets the values for {name = Favecoin}, {fixedSupply = 1000000000} and {symbol = FAVE}.
      *
-     * All two of these values are immutable: they can only be set once during
+     * All of these values are immutable: they can only be set once during
      * construction.
      */
-    constructor(uint256 initialSupply, address payable _project)
+    constructor(uint256 fixedSupply, address _project)
         ERC20("Favecoin", "FAVE")
     {
-        require(_project != address(0), "Project cannot be address zero.");
+        require(msg.sender != address(0), "Caller cannot be address zero");
+        require(_project != address(0), "Project cannot be address zero");
         tokenDecimals = 7;
         project = _project;
-        super._mint(msg.sender, initialSupply); // Since Total supply 1000000000
+        super._mint(msg.sender, fixedSupply); // Since Total supply 1000000000
     }
 
     /**
@@ -721,7 +722,7 @@ contract FAVE is ERC20, Ownable, Pausable {
      * @dev To transfer project tokens without deducting fee
      *
      * Requirements:
-     * - can only be invoked by the project
+     * - can only be invoked by the project or the contract owner
      */
     function transferWithoutFeeDeduction(address recipient, uint256 amount)
         external
@@ -734,7 +735,7 @@ contract FAVE is ERC20, Ownable, Pausable {
      * @dev To update project wallet
      *
      * Requirements:
-     * - can only be invoked by the project
+     * - can only be invoked by the contract owner
      */
     function updateProject(address payable _project) external onlyOwner {
         require(project != _project, "New project can't be old project");
@@ -747,7 +748,7 @@ contract FAVE is ERC20, Ownable, Pausable {
      * @dev To update number of decimals for a token
      *
      * Requirements:
-     * - invocation can be done, only by the contract owner.
+     * - invocation can be done, only by the contract owner & when contract is not paused
      */
     function updateDecimals(uint8 noOfDecimals) public onlyOwner whenNotPaused {
         tokenDecimals = noOfDecimals;
@@ -772,6 +773,7 @@ contract FAVE is ERC20, Ownable, Pausable {
      * total supply.
      */
     function burn(uint256 amount) public whenNotPaused {
+        require(msg.sender != address(0), "Caller cannot be address zero");
         // Calculate fee and transfer the amount - fee
         uint256 fee = calculateFee(amount);
         amount -= fee;
@@ -783,13 +785,10 @@ contract FAVE is ERC20, Ownable, Pausable {
      * @dev To transfer all BNBs stored in the contract to the caller
      *
      * Requirements:
-     * - invocation can be done, only by the contract owner.
+     * - invocation can be done, only by the contract owner & when the contract is not paused
      */
     function withdrawAll() public payable onlyOwner whenNotPaused {
-        require(
-            payable(msg.sender).send(address(this).balance),
-            "Withdraw failed"
-        );
+        payable(msg.sender).transfer(address(this).balance);
     }
 
     /**
@@ -798,6 +797,7 @@ contract FAVE is ERC20, Ownable, Pausable {
      * Requirements:
      *
      * - The contract must not be paused.
+     * - invocation can be done, only by the contract owner & when the contract is not paused
      */
     function pause() public onlyOwner whenNotPaused {
         _pause();
@@ -809,6 +809,7 @@ contract FAVE is ERC20, Ownable, Pausable {
      * Requirements:
      *
      * - The contract must be paused.
+     * - invocation can be done, only by the contract owner & when the contract is paused
      */
     function unpause() public onlyOwner whenPaused {
         _unpause();
@@ -826,6 +827,7 @@ contract FAVE is ERC20, Ownable, Pausable {
      * - `sender` must have a balance of at least `amount`.
      * - the caller must have allowance for ``sender``'s tokens of at least
      * `amount`.
+     * - invocation can be done, only when the contract is not paused
      */
     function transferFrom(
         //solhint-disable-next-line no-unused-vars
@@ -833,6 +835,7 @@ contract FAVE is ERC20, Ownable, Pausable {
         address recipient,
         uint256 amount
     ) public override whenNotPaused returns (bool) {
+        require(msg.sender != address(0), "Caller cannot be address zero");
         // Calculate fee and transfer the amount - fee
         uint256 fee = calculateFee(amount);
         amount -= fee;
@@ -847,6 +850,7 @@ contract FAVE is ERC20, Ownable, Pausable {
      *
      * - `recipient` cannot be the zero address.
      * - the caller must have a balance of at least `amount`.
+     * - invocation can be done, only when the contract is not paused
      */
     function transfer(address recipient, uint256 amount)
         public
@@ -854,6 +858,7 @@ contract FAVE is ERC20, Ownable, Pausable {
         whenNotPaused
         returns (bool)
     {
+        require(msg.sender != address(0), "Caller cannot be address zero");
         // Calculate fee and transfer the amount - fee
         uint256 fee = calculateFee(amount);
         amount -= fee;

@@ -8,14 +8,14 @@ const FAVE = artifacts.require("FAVE")
 contract('FAVE is [ERC720, Ownable]', (accounts) => {
     const [owner, acc1, acc2, acc3, acc4, project, newProject, nonOwner] = accounts
     const gas = 6721975
-    const initialSupply = "10000000000000000";// 1 Billion FAVE Coins
+    const fixedSupply = "10000000000000000";// 1 Billion FAVE Coins
 
     let FAVEConInstance;
     let txObject;
 
     describe('FAVE tests', () => {
         before(async () => {
-            FAVEConInstance = await FAVE.new(initialSupply, project, { from: owner, gas })
+            FAVEConInstance = await FAVE.new(fixedSupply, project, { from: owner, gas })
         })
 
         context('checks constructor invocation is successful', () => {
@@ -34,7 +34,7 @@ contract('FAVE is [ERC720, Ownable]', (accounts) => {
             })
             it('should verify totalSupply is 1000000000', async () => {
                 totalSupply = new BigNumber(await FAVEConInstance.totalSupply.call());
-                assert.equal(totalSupply.toNumber(), initialSupply, "Total supply do not match")
+                assert.equal(totalSupply.toNumber(), fixedSupply, "Total supply do not match")
             })
             it('should verify project is set as expected', async () => {
                 wallet = await FAVEConInstance.project.call();
