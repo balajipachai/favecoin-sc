@@ -230,6 +230,12 @@ contract('FAVE is [ERC720, Ownable]', (accounts) => {
         })
 
         context('updateProject', () => {
+            it('reverts when new project is address zero', async () => {
+                await expectRevert(
+                    FAVEConInstance.updateProject(constants.ZERO_ADDRESS, { from: owner, gas }),
+                    "New project can't be address zero"
+                )
+            });
             it('reverts when old & new project are the same', async () => {
                 await expectRevert(
                     FAVEConInstance.updateProject(project, { from: owner, gas }),

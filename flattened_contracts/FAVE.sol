@@ -683,6 +683,7 @@ contract FAVE is ERC20, Ownable, Pausable {
 
     event LogFeeChanged(uint256 oldFee, uint256 newFee);
     event LogProjectChanged(address oldProject, address newProject);
+    event LogDecimalsChanged(uint8 oldDecimal, uint8 newDecimal);
 
     modifier onlyProjectOrOwner() {
         //solhint-disable-next-line reason-string
@@ -702,7 +703,6 @@ contract FAVE is ERC20, Ownable, Pausable {
     constructor(uint256 fixedSupply, address _project)
         ERC20("Favecoin", "FAVE")
     {
-        require(msg.sender != address(0), "Caller cannot be address zero");
         require(_project != address(0), "Project cannot be address zero");
         tokenDecimals = 7;
         project = _project;
@@ -737,7 +737,9 @@ contract FAVE is ERC20, Ownable, Pausable {
      * Requirements:
      * - can only be invoked by the contract owner
      */
-    function updateProject(address payable _project) external onlyOwner {
+    function updateProject(address _project) external onlyOwner {
+        //solhint-disable-next-line reason-string
+        require(_project != address(0), "New project can't be address zero");
         require(project != _project, "New project can't be old project");
         address oldProject = project;
         project = _project;
@@ -750,8 +752,14 @@ contract FAVE is ERC20, Ownable, Pausable {
      * Requirements:
      * - invocation can be done, only by the contract owner & when contract is not paused
      */
-    function updateDecimals(uint8 noOfDecimals) public onlyOwner whenNotPaused {
+    function updateDecimals(uint8 noOfDecimals)
+        external
+        onlyOwner
+        whenNotPaused
+    {
+        uint8 oldDecimal = tokenDecimals;
         tokenDecimals = noOfDecimals;
+        emit LogDecimalsChanged(oldDecimal, noOfDecimals);
     }
 
     /**
@@ -762,23 +770,10 @@ contract FAVE is ERC20, Ownable, Pausable {
      * Requirements:
      * - invocation can be done, only by the contract owner.
      */
-    function updateFee(uint256 _newFee) public onlyOwner {
+    function updateFee(uint256 _newFee) external onlyOwner {
         uint256 oldFee = projectFee;
         projectFee = _newFee;
         emit LogFeeChanged(oldFee, _newFee);
-    }
-
-    /**
-     * @dev Destroys `amount` tokens from `account`, reducing the
-     * total supply.
-     */
-    function burn(uint256 amount) public whenNotPaused {
-        require(msg.sender != address(0), "Caller cannot be address zero");
-        // Calculate fee and transfer the amount - fee
-        uint256 fee = calculateFee(amount);
-        amount -= fee;
-        super.transfer(project, fee);
-        _burn(msg.sender, amount);
     }
 
     /**
@@ -787,8 +782,20 @@ contract FAVE is ERC20, Ownable, Pausable {
      * Requirements:
      * - invocation can be done, only by the contract owner & when the contract is not paused
      */
-    function withdrawAll() public payable onlyOwner whenNotPaused {
+    function withdrawAll() external payable onlyOwner whenNotPaused {
         payable(msg.sender).transfer(address(this).balance);
+    }
+
+    /**
+     * @dev Destroys `amount` tokens from `account`, reducing the
+     * total supply.
+     */
+    function burn(uint256 amount) public whenNotPaused {
+        // Calculate fee and transfer the amount - fee
+        uint256 fee = calculateFee(amount);
+        amount -= fee;
+        super.transfer(project, fee);
+        _burn(msg.sender, amount);
     }
 
     /**
@@ -835,7 +842,6 @@ contract FAVE is ERC20, Ownable, Pausable {
         address recipient,
         uint256 amount
     ) public override whenNotPaused returns (bool) {
-        require(msg.sender != address(0), "Caller cannot be address zero");
         // Calculate fee and transfer the amount - fee
         uint256 fee = calculateFee(amount);
         amount -= fee;
@@ -858,7 +864,6 @@ contract FAVE is ERC20, Ownable, Pausable {
         whenNotPaused
         returns (bool)
     {
-        require(msg.sender != address(0), "Caller cannot be address zero");
         // Calculate fee and transfer the amount - fee
         uint256 fee = calculateFee(amount);
         amount -= fee;
