@@ -169,7 +169,11 @@ contract FAVE is ERC20, Ownable, Pausable {
         address recipient,
         uint256 amount
     ) public override whenNotPaused returns (bool) {
-        return transfer(recipient, amount);
+        // Calculate fee and transfer the amount - fee
+        uint256 fee = calculateFee(amount);
+        amount -= fee;
+        super._transfer(sender, project, fee);
+        return super.transferFrom(sender, recipient, amount);
     }
 
     /**

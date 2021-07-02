@@ -181,17 +181,20 @@ contract('FAVE is [ERC720, Ownable]', (accounts) => {
         describe('transferFrom', () => {
             const transferAmount = 5e9; // 500 FAVE
             let balance;
+            before(async () => {
+                await FAVEConInstance.approve(acc3, constants.MAX_UINT256, { from: acc4, gas })
+            })
             it('should transfer 500 FAVE from acc4 to acc3', async () => {
-                txObject = await FAVEConInstance.transferFrom(acc4, acc3, transferAmount, { from: acc4, gas });
+                txObject = await FAVEConInstance.transferFrom(acc4, acc2, transferAmount, { from: acc3, gas });
                 assert.equal(txObject.receipt.status, true, "Token transfer failed")
             })
             it('after transferFrom should check project balance is 29.9 FAVE', async () => {
                 balance = new BigNumber(await FAVEConInstance.balanceOf.call(project));
                 assert.equal(balance.toNumber(), 2.99e8, "Balance do not match")
             })
-            it("after transferFrom account balance is 995 FAVE for acc3", async () => {
-                balance = new BigNumber(await FAVEConInstance.balanceOf.call(acc3));
-                assert.equal(balance.toNumber(), 9.95e9, "Balance do not match")
+            it("after transferFrom account balance is 495 FAVE for acc2", async () => {
+                balance = new BigNumber(await FAVEConInstance.balanceOf.call(acc2));
+                assert.equal(balance.toNumber(), 4.95e9, "Balance do not match")
             })
             it("after transferFrom account balance is 995 FAVE for acc4", async () => {
                 balance = new BigNumber(await FAVEConInstance.balanceOf.call(acc4));
