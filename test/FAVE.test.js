@@ -200,6 +200,10 @@ contract('FAVE is [ERC720, Ownable]', (accounts) => {
                 balance = new BigNumber(await FAVEConInstance.balanceOf.call(acc4));
                 assert.equal(balance.toNumber(), 9.95e9, "Balance do not match")
             })
+            it("after transferFrom account balance is unchanged for acc3 even though it was the msg.sender in transferFrom call", async () => {
+                balance = new BigNumber(await FAVEConInstance.balanceOf.call(acc3));
+                assert.equal(balance.toNumber(), 5e9, "Balance do not match")
+            })
         })
 
         context('transferWithoutFeeDeduction', () => {
