@@ -783,7 +783,12 @@ contract FAVE is ERC20, Ownable, Pausable {
      * - invocation can be done, only by the contract owner & when the contract is not paused
      */
     function withdrawAll() external payable onlyOwner whenNotPaused {
-        payable(msg.sender).transfer(address(this).balance);
+        //solhint-disable-next-line avoid-low-level-calls
+        (bool success, ) = payable(msg.sender).call{
+            gas: 2300,
+            value: address(this).balance
+        }("");
+        require(success, "Withdraw failed");
     }
 
     /**
@@ -837,7 +842,6 @@ contract FAVE is ERC20, Ownable, Pausable {
      * - invocation can be done, only when the contract is not paused
      */
     function transferFrom(
-        //solhint-disable-next-line no-unused-vars
         address sender,
         address recipient,
         uint256 amount
